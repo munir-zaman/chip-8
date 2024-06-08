@@ -2,6 +2,9 @@
 #include<stdint.h>
 #include<stdlib.h>
 
+#define DEBUG 1
+
+// address of start position
 const unsigned int START_ADDRESS = 0x200;
 
 typedef struct Chip8 {
@@ -22,16 +25,20 @@ typedef struct Chip8 {
     uint8_t sp;
     // display
     uint32_t display[64][32];
-    // 16bit opcode
+    // 16-bit opcode
     uint16_t opcode;
 } Chip8;
 
 Chip8 chip8;
 
+// load a rom file into the memory of chip8 (chip8.memory)
 int load_rom(char *filename) {
+    // open file
     FILE *fp;
+    // rb -> read + binary (read the file in binary)
     fp = fopen(filename, "rb");
 
+    // check for file errors
     if (fp == NULL) {
         printf("Error : failed to load file \'%s\'\n", filename);
         return -1;
@@ -40,23 +47,49 @@ int load_rom(char *filename) {
     // calculate size of file -> f_size
     fseek(fp, 0L, SEEK_END);
     long int f_size = ftell(fp);
+    if (DEBUG) printf("File size of %s : %d", filename, f_size);
 
     // reset position
     fseek(fp, 0L, SEEK_SET);
 
-    // load to memory
+    // load to memory -> chip8.memory
     unsigned char x;
-    for (int i = 0; ((x = fgetc(fp)) != EOF); i++) {
+    for (int i = 0; i<f_size; i++) {
+        x = fgetc(fp);
         chip8.memory[START_ADDRESS + i] = x;
+        printf("%d %02X\n", i, (unsigned char)x);
     }
+
+    // NOTE: " (x = fgetc(fp)) != EOF " causes a bug.. probably because of type conversion
 
     // close and return
     fclose(fp);
     return 0;
 }
 
+void execute_instruction(uint16_t opcode) {
+    // an opcode is 16 bits
+    // last_digit is going to store the last nibble or hex value
+    uint8_t last_digit = (opcode >> 12u);
+    if (DEBUG) printf("Opcode Type : %02X\n", last_digit);
+}
+
+void cycle() {
+    // Fetch the opcode
+
+    // Decode and execute the instruction
+
+    // Update the program counter and timers
+
+    // TODO
+}
+
 int main(int argc, char *argv[]) {
+    chip8.pc = START_ADDRESS;
     if (argc > 1) {
-        load_rom(argv[1]);
+        int err = load_rom(argv[1]);
+        printf(err);
+        execute_instruction(0xBAAA);
     }
+
 }
