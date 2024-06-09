@@ -4,8 +4,12 @@
 
 #define DEBUG 1
 
+// extracting nibbles/hex values for opcode
+#define HEX(opcode, index) (opcode & (0xF << (4*index))) >> (4*index)
+
 // address of start position
 const unsigned int START_ADDRESS = 0x200;
+const uint32_t DEFAULT_COLOR = 0xFFFFFFFF;
 
 typedef struct Chip8 {
     // 4kb of memory
@@ -57,7 +61,7 @@ int load_rom(char *filename) {
     for (int i = 0; i<f_size; i++) {
         x = fgetc(fp);
         chip8.memory[START_ADDRESS + i] = x;
-        printf("%d %02X\n", i, (unsigned char)x);
+        if (DEBUG) printf("%d %02X\n", i, x);
     }
 
     // NOTE: " (x = fgetc(fp)) != EOF " causes a bug.. probably because of type conversion
@@ -70,8 +74,24 @@ int load_rom(char *filename) {
 void execute_instruction(uint16_t opcode) {
     // an opcode is 16 bits
     // last_digit is going to store the last nibble or hex value
-    uint8_t last_digit = (opcode >> 12u);
+    uint8_t last_digit = HEX(opcode, 3);
     if (DEBUG) printf("Opcode Type : %02X\n", last_digit);
+    if (last_digit == 0x0) {
+        // 00E0 - CLS
+        if (HEX(opcode, 1) == 0xE && HEX(opcode, 0) == 0x0) {
+            for (int i = 0; i < 64; i++)
+                for (int j = 0; j < 32; j++)
+                    chip8.display[i][j] = DEFAULT_COLOR;
+
+            if (DEBUG) printf("Cleared The Screen");
+        }
+        // 00EE - RET
+        else if (HEX(opcode, 1) == 0xE && HEX(opcode, 0) == 0xE) {
+            chip8.pc = chip8.stack[chip8.sp];
+            chip8.sp--;
+            if (DEBUG) printf("Executed RET.. returned to %04X", chip8.pc);
+        }
+    }
 }
 
 void cycle() {
@@ -89,7 +109,7 @@ int main(int argc, char *argv[]) {
     if (argc > 1) {
         int err = load_rom(argv[1]);
         printf(err);
-        execute_instruction(0xBAAA);
+        execute_instruction(0x00E0);
     }
 
 }
