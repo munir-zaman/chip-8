@@ -16,8 +16,9 @@ typedef struct Chip8 {
     uint8_t memory[4096];
     // 16 8-bit registers (V0 - VF)
     uint8_t V[16];
-    // index register
-    uint8_t index;
+    // index register??
+    // uint8_t index; 
+    uint16_t I;
     // timers
     uint8_t delay_timer;
     uint8_t sound_timer;
@@ -131,7 +132,12 @@ void execute_instruction(uint16_t opcode) {
         chip8.V[x] += kk;
     }
     else if (last_digit == 0x8) {
-        if (n == 0x1) {
+        if (n == 0x0) {
+            // 8xy0 - LD Vx, Vy
+            // Set Vx = Vy.
+            chip8.V[x] = chip8.V[y];
+        }
+        else if (n == 0x1) {
             chip8.V[x] |= chip8.V[y];
         }
         else if (n == 0x2) {
@@ -174,6 +180,34 @@ void execute_instruction(uint16_t opcode) {
             // shift left by one
             chip8.V[x] <<= 1;
         }
+    }
+    else if (last_digit == 0x9) {
+        // 9xy0 - SNE Vx, Vy
+        // Skip next instruction if Vx != Vy.
+        if (chip8.V[x] != chip8.V[y]) chip8.pc += 2;
+    }
+    else if (last_digit == 0xA) {
+        // Annn - LD I, addr
+        // Set I = nnn.
+        chip8.I = nnn;
+    }
+    else if (last_digit == 0xB) {
+        // Bnnn - JP V0, addr
+        // Jump to location nnn + V0
+        chip8.pc = nnn + chip8.V[0];
+    }
+    else if (last_digit == 0xC) {
+        // Cxkk - RND Vx, byte
+        // Set Vx = random byte AND kk
+        srand(time(NULL));
+        uint8_t RND = rand() & 0xFF;
+        chip8.V[x] = RND & kk;
+    }
+    else if (last_digit == 0xD) {
+        // TODO
+        // ====
+        // Dxyn - DRW Vx, Vy, nibble
+        // Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
     }
 }
 
